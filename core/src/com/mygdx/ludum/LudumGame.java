@@ -44,7 +44,7 @@ public class LudumGame extends ApplicationAdapter {
 	private OrthogonalTiledMapRenderer renderer;
 	private OrthographicCamera camera;
 	private AssetManager assetManager;
-	private float GRAVITY = -2.8f;
+	private float GRAVITY = -5f;
 	private Animation stand;
 	private Animation walk;
 	private Animation jump;
@@ -76,17 +76,19 @@ public class LudumGame extends ApplicationAdapter {
 		static float WIDTH;
 		static float HEIGHT;
 		static float MAX_VELOCITY = 100f;
-		static float JUMP_VELOCITY = 100f;
+		static float JUMP_VELOCITY = 150f;
 		static float DAMPING = 0.87f;
 		enum State {
 			Standing, Walking, Jumping
 		}
 		final Vector2 position = new Vector2();
+		Vector2 desiredPosition = new Vector2();
 		final Vector2 velocity = new Vector2();
 		State state = State.Walking;
 		float stateTime = 0;
 		boolean facesRight = true;
-		boolean grounded = false;
+		boolean grounded = true;
+		public boolean updateVelocity;
 
 		}
 
@@ -109,7 +111,7 @@ public class LudumGame extends ApplicationAdapter {
 
 
 		raya = new RayaMan();
-		raya.position.set(0,130);
+		raya.position.set(0,64);
 
 		configControllers();
 	}
@@ -195,6 +197,7 @@ public class LudumGame extends ApplicationAdapter {
 		shapeRenderer.setColor(Color.RED);
 		shapeRenderer.rect(rayaRect.x * 1.6f, rayaRect.y * 2, rayaRect.width * 2, rayaRect.height * 2);
 
+
         shapeRenderer.end();
 		}
 
@@ -204,16 +207,25 @@ public class LudumGame extends ApplicationAdapter {
 			return;
 		raya.stateTime += deltaTime;
 
+		raya.desiredPosition.x = raya.position.x;
+		raya.desiredPosition.y = raya.position.y;
+
 		if ((Gdx.input.isKeyPressed(Keys.S) || jumpPressed) && raya.grounded){
-			moveJump();
+			raya.velocity.y = RayaMan.JUMP_VELOCITY;
+			raya.grounded = false;
+			raya.state = RayaMan.State.Jumping;
 		}
 
 		if (Gdx.input.isKeyPressed(Keys.LEFT) || leftPressed){
-			moveLeft();
+			raya.velocity.x = -RayaMan.MAX_VELOCITY;
+			if (raya.grounded) raya.state = RayaMan.State.Walking;
+			raya.facesRight = false;
 		}
 
 		if (Gdx.input.isKeyPressed(Keys.RIGHT) || rightPressed){
-			moveRight();
+			raya.velocity.x = RayaMan.MAX_VELOCITY;
+			if (raya.grounded) raya.state = RayaMan.State.Walking;
+			raya.facesRight = true;
 		}
 
 		raya.velocity.add(0, GRAVITY);
@@ -236,21 +248,29 @@ public class LudumGame extends ApplicationAdapter {
 		// perform collision detection & response, on each axis, separately
 		// if the raya is moving right, check the tiles to the right of it's
 		// right bounding box edge, otherwise check the ones to the left
-		rayaRect = rectPool.obtain();
+		rayaRect = new Rectangle();//rectPool.obtain();
 
-		rayaRect.set((float)Math.round(raya.position.x), (float)Math.floor(raya.position.y), RayaMan.WIDTH, RayaMan.HEIGHT);
+		raya.desiredPosition.y = (float) Math.round(raya.position.y);
+		raya.desiredPosition.x = Math.round(raya.position.x);
+
+		rayaRect.set(raya.desiredPosition.x, (raya.desiredPosition.y), RayaMan.WIDTH, RayaMan.HEIGHT);
 
 		int startX, startY, endX, endY;
 
 		if (raya.velocity.x > 0) {
-			startX = endX = (int)((raya.position.x + raya.velocity.x + RayaMan.WIDTH) / 16);
+			startX = endX = (int)((raya.desiredPosition.x + raya.velocity.x + RayaMan.WIDTH) / 16);
 		}
 		else {
-			startX = endX = (int)((raya.position.x + raya.velocity.x) / 16);
+			startX = endX = (int)((raya.desiredPosition.x + raya.velocity.x) / 16);
 		}
-		startY = (int)Math.floor((raya.position.y) / 16);
-		endY = (int)Math.floor((raya.position.y + RayaMan.HEIGHT) / 16);
-
+		if (raya.grounded){
+			startY = (int)((raya.desiredPosition.y) / 16) + 1;
+			endY = (int)((raya.desiredPosition.y + RayaMan.HEIGHT) / 16) + 1;
+		}
+		else{
+			startY = (int)((raya.desiredPosition.y) / 16);
+			endY = (int)((raya.desiredPosition.y + RayaMan.HEIGHT) / 16);
+		}
 		getTiles(startX, startY, endX, endY, tiles);
 
 		rayaRect.x += raya.velocity.x;
@@ -262,26 +282,24 @@ public class LudumGame extends ApplicationAdapter {
 				}
 		}
 
-		rayaRect.x = raya.position.x;
+		rayaRect.x = raya.desiredPosition.x;
 
 		// if the koala is moving upwards, check the tiles to the top of it's
 		// top bounding box edge, otherwise check the ones to the bottom
 
 		if (raya.velocity.y > 0) {
-			startY = endY = (int)((raya.position.y + raya.velocity.y + RayaMan.HEIGHT) / 16);
+			startY = endY = (int)((raya.desiredPosition.y + raya.velocity.y + RayaMan.HEIGHT) / 16f);
 		}
 		else {
-			startY = endY = (int)((raya.position.y + raya.velocity.y) / 16);
+			startY = endY = (int)((raya.desiredPosition.y + raya.velocity.y) / 16f);
 		}
 
-		startX = (int)(raya.position.x / 16);					//16 tile size
-		endX = (int)((raya.position.x + RayaMan.WIDTH) / 16);
+		startX = (int)(raya.desiredPosition.x / 16);					//16 tile size
+		endX = (int)((raya.desiredPosition.x + RayaMan.WIDTH) / 16);
 
 		System.out.println(startX + " " + startY + " " + endX + " " + endY);
 
 		getTiles(startX, startY, endX, endY, tiles);
-
-
 
 		rayaRect.y += (int)(raya.velocity.y);
 
@@ -291,12 +309,13 @@ public class LudumGame extends ApplicationAdapter {
 				// we actually reset the koala y-position here
 				// so it is just below/above the tile we collided with
 				// this removes bouncing :)
+
 				if (raya.velocity.y > 0) {
-					raya.position.y = tile.y - RayaMan.HEIGHT;
+					raya.desiredPosition.y = tile.y - RayaMan.HEIGHT - 1;
 					// we hit a block jumping upwards, let's destroy it!
 					}
 				else {
-					raya.position.y = tile.y + tile.height;
+					raya.desiredPosition.y = tile.y + tile.height - 1;
 					// if we hit the ground, mark us as grounded so we can jump
 					raya.grounded = true;
 					}
@@ -304,15 +323,25 @@ public class LudumGame extends ApplicationAdapter {
 				break;
 				}
 			}
-		rectPool.free(rayaRect);
+
+		if (tiles.size == 0)
+			raya.grounded = false;
+
+		//goes together with get
+		//rectPool.free(rayaRect);
 
 		// unscale the velocity by the inverse delta time and set
 		// the latest position
-		raya.position.add(raya.velocity);
+		raya.desiredPosition.add(raya.velocity);
 		raya.velocity.scl(1 / deltaTime);
+
 		// Apply damping to the velocity on the x-axis so we don't
 		// walk infinitely once a key was pressed
 		raya.velocity.x *= RayaMan.DAMPING;
+
+		raya.position.y = raya.desiredPosition.y;
+		raya.position.x = raya.desiredPosition.x;
+
 	}
 
 	private void getTiles (int startX, int startY, int endX, int endY, Array<Rectangle> tiles) {
@@ -331,24 +360,6 @@ public class LudumGame extends ApplicationAdapter {
 				}
 			}
 		}
-
-	private void moveLeft(){
-		raya.velocity.x = -RayaMan.MAX_VELOCITY;
-		if (raya.grounded) raya.state = RayaMan.State.Walking;
-		raya.facesRight = false;
-	}
-
-	private void moveRight(){
-		raya.velocity.x = RayaMan.MAX_VELOCITY;
-		if (raya.grounded) raya.state = RayaMan.State.Walking;
-		raya.facesRight = true;
-	}
-
-	private void moveJump(){
-		raya.velocity.y += RayaMan.JUMP_VELOCITY;
-		raya.grounded = false;
-		raya.state = RayaMan.State.Jumping;
-	}
 
 	private void configControllers() {
 		// CODIGO DE PRUEBAS PARA LOS MANDOS / GAMEPAD TESTING CODE
