@@ -6,6 +6,10 @@ import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.assets.loaders.resolvers.InternalFileHandleResolver;
 import com.badlogic.gdx.graphics.Color;
+import com.badlogic.gdx.controllers.Controller;
+import com.badlogic.gdx.controllers.ControllerListener;
+import com.badlogic.gdx.controllers.Controllers;
+import com.badlogic.gdx.controllers.PovDirection;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
@@ -26,8 +30,10 @@ import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.badlogic.gdx.math.Rectangle;
 import com.badlogic.gdx.math.Vector2;
+import com.badlogic.gdx.math.Vector3;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Pool;
+import com.badlogic.gdx.Input.Keys;
 
 public class LudumGame extends ApplicationAdapter {
 
@@ -47,6 +53,11 @@ public class LudumGame extends ApplicationAdapter {
 	private String TEXTURE_ATLAS_OBJECTS = "rayaman.pack";
 	private Array<Rectangle> tiles = new Array<Rectangle>();
 	Rectangle rayaRect;
+
+	// Botones del mando / Gamepad Buttons
+	private boolean leftPressed = false;
+	private boolean rightPressed = false;
+	private boolean jumpPressed = false;
 
 
 
@@ -99,6 +110,101 @@ public class LudumGame extends ApplicationAdapter {
 
 		raya = new RayaMan();
 		raya.position.set(0,130);
+
+
+
+		// CODIGO DE PRUEBAS PARA LOS MANDOS / GAMEPAD TESTING CODE
+
+		// print the currently connected controllers to the console
+		System.out.println("Controllers: " + Controllers.getControllers().size);
+		int i = 0;
+		for (Controller controller : Controllers.getControllers()) {
+			System.out.println("#" + i++ + ": " + controller.getName());
+		}
+		if (Controllers.getControllers().size == 0) System.out.println("No controllers attached");
+
+		// setup the listener that prints events to the console
+		Controllers.addListener(new ControllerListener() {
+		public int indexOf (Controller controller) {
+		return Controllers.getControllers().indexOf(controller, true);
+		}
+		@Override
+		public void connected (Controller controller) {
+			System.out.println("connected " + controller.getName());
+		int i = 0;
+		for (Controller c : Controllers.getControllers()) {
+			System.out.println("#" + i++ + ": " + c.getName());
+		}
+		}
+		@Override
+		public void disconnected (Controller controller) {
+			System.out.println("disconnected " + controller.getName());
+		int i = 0;
+		for (Controller c : Controllers.getControllers()) {
+			System.out.println("#" + i++ + ": " + c.getName());
+		}
+		if (Controllers.getControllers().size == 0) System.out.println("No controllers attached");
+		}
+		@Override
+		public boolean buttonDown (Controller controller, int buttonIndex) {
+			System.out.println("#" + indexOf(controller) + ", button " + buttonIndex + " down");
+			if (buttonIndex == 0){
+				jumpPressed = true;
+			}
+		return false;
+		}
+		@Override
+		public boolean buttonUp (Controller controller, int buttonIndex) {
+			System.out.println("#" + indexOf(controller) + ", button " + buttonIndex + " up");
+			if (buttonIndex == 0){
+				jumpPressed = false;
+			}
+		return false;
+		}
+		@Override
+		public boolean axisMoved (Controller controller, int axisIndex, float value) {
+			System.out.println("#" + indexOf(controller) + ", axis " + axisIndex + ": " + value);
+		return false;
+		}
+		@Override
+		public boolean povMoved (Controller controller, int povIndex, PovDirection value) {
+			System.out.println("#" + indexOf(controller) + ", pov " + povIndex + ": " + value);
+			System.out.println(value);
+
+			if (value.equals("west") || value == PovDirection.west){
+				rightPressed = false;
+				leftPressed = true;
+			}
+			else if (value.equals(PovDirection.east)){
+				rightPressed = true;
+				leftPressed = false;
+			}
+			else if (value.equals(PovDirection.center)){
+				rightPressed = false;
+				leftPressed = false;
+			}
+			else{
+				System.out.println("else!!");
+			}
+
+		return false;
+		}
+		@Override
+		public boolean xSliderMoved (Controller controller, int sliderIndex, boolean value) {
+			System.out.println("#" + indexOf(controller) + ", x slider " + sliderIndex + ": " + value);
+		return false;
+		}
+		@Override
+		public boolean ySliderMoved (Controller controller, int sliderIndex, boolean value) {
+			System.out.println("#" + indexOf(controller) + ", y slider " + sliderIndex + ": " + value);
+		return false;
+		}
+		@Override
+		public boolean accelerometerMoved (Controller controller, int accelerometerIndex, Vector3 value) {
+		// not printing this as we get to many values
+		return false;
+		}
+		});
 	}
 
 	private void createAnimations() {
@@ -187,25 +293,18 @@ public class LudumGame extends ApplicationAdapter {
 
 		if (deltaTime == 0)
 			return;
-
 		raya.stateTime += deltaTime;
 
-		if (Gdx.input.isKeyPressed(Keys.S) && raya.grounded){
-			raya.velocity.y += RayaMan.JUMP_VELOCITY;
-			raya.grounded = false;
-			raya.state = RayaMan.State.Jumping;
+		if ((Gdx.input.isKeyPressed(Keys.S) || jumpPressed) && raya.grounded){
+			moveJump();
 		}
 
-		if (Gdx.input.isKeyPressed(Keys.LEFT)){
-			raya.velocity.x = -RayaMan.MAX_VELOCITY;
-			if (raya.grounded) raya.state = RayaMan.State.Walking;
-			raya.facesRight = false;
+		if (Gdx.input.isKeyPressed(Keys.LEFT) || leftPressed){
+			moveLeft();
 		}
 
-		if (Gdx.input.isKeyPressed(Keys.RIGHT)){
-			raya.velocity.x = RayaMan.MAX_VELOCITY;
-			if (raya.grounded) raya.state = RayaMan.State.Walking;
-			raya.facesRight = true;
+		if (Gdx.input.isKeyPressed(Keys.RIGHT) || rightPressed){
+			moveRight();
 		}
 
 		raya.velocity.add(0, GRAVITY);
@@ -318,4 +417,22 @@ public class LudumGame extends ApplicationAdapter {
 				}
 			}
 		}
+
+	private void moveLeft(){
+		raya.velocity.x = -RayaMan.MAX_VELOCITY;
+		if (raya.grounded) raya.state = RayaMan.State.Walking;
+		raya.facesRight = false;
+	}
+
+	private void moveRight(){
+		raya.velocity.x = RayaMan.MAX_VELOCITY;
+		if (raya.grounded) raya.state = RayaMan.State.Walking;
+		raya.facesRight = true;
+	}
+
+	private void moveJump(){
+		raya.velocity.y += RayaMan.JUMP_VELOCITY;
+		raya.grounded = false;
+		raya.state = RayaMan.State.Jumping;
+	}
 }
