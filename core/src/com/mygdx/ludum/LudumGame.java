@@ -111,8 +111,246 @@ public class LudumGame extends ApplicationAdapter {
 		raya = new RayaMan();
 		raya.position.set(0,130);
 
+		configControllers();
+	}
 
 
+
+	private void createAnimations() {
+		assetManager.load(TEXTURE_ATLAS_OBJECTS, TextureAtlas.class);
+		assetManager.finishLoading();
+
+		atlas = assetManager.get(TEXTURE_ATLAS_OBJECTS);
+		Array<AtlasRegion> regions;
+
+		regions = atlas.findRegions("rayaman_walking");
+		walk = new Animation(0.15f, regions);
+		walk.setPlayMode(Animation.PlayMode.LOOP);
+
+		regions = atlas.findRegions("rayaman_standing");
+		stand = new Animation(0, regions);
+		jump = new Animation(0, regions);
+
+		RayaMan.WIDTH = 16f;
+		RayaMan.HEIGHT = 21f;
+
+	}
+
+	@Override
+	public void render () {
+		Gdx.gl.glClearColor(1, 0, 0, 1);
+		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
+
+		float deltaTime = Gdx.graphics.getDeltaTime();
+
+		updateRaya(deltaTime);
+
+		camera.position.x = 200;//raya.position.x;
+		camera.update();
+
+		renderer.setView(camera);
+		renderer.render();
+
+		renderRayaMan(deltaTime);
+	}
+
+	private void renderRayaMan (float deltaTime) {
+		// based on the koala state, get the animation frame
+		TextureRegion frame = null;
+		switch (raya.state) {
+		case Standing:
+			frame = stand.getKeyFrame(raya.stateTime);
+			break;
+		case Walking:
+			frame = walk.getKeyFrame(raya.stateTime);
+			break;
+		case Jumping:
+			frame = jump.getKeyFrame(raya.stateTime);
+			break;
+		}
+		// draw the koala, depending on the current velocity
+		// on the x-axis, draw the koala facing either right
+		// or left
+		Batch batch = renderer.getSpriteBatch();
+		batch.begin();
+		if (raya.facesRight) {
+			if (frame.isFlipX())
+				frame.flip(true, false);
+			batch.draw(frame, raya.position.x, raya.position.y);
+		} else {
+			if (!frame.isFlipX())
+				frame.flip(true, false);
+			batch.draw(frame, raya.position.x, raya.position.y);
+		}
+
+		batch.end();
+		shapeRenderer.begin(ShapeType.Filled);
+
+		shapeRenderer.setColor(Color.BLACK);
+
+		getTiles(0, 0, 25, 15, tiles);
+		for (Rectangle tile : tiles) {
+			shapeRenderer.rect(tile.x * 1.6f, tile.y * 2, tile.width * 2, tile.height * 2);
+		}
+		shapeRenderer.setColor(Color.RED);
+		shapeRenderer.rect(rayaRect.x * 1.6f, rayaRect.y * 2, rayaRect.width * 2, rayaRect.height * 2);
+
+        shapeRenderer.end();
+		}
+
+	private void updateRaya(float deltaTime) {
+
+		if (deltaTime == 0)
+			return;
+		raya.stateTime += deltaTime;
+
+		if ((Gdx.input.isKeyPressed(Keys.S) || jumpPressed) && raya.grounded){
+			moveJump();
+		}
+
+		if (Gdx.input.isKeyPressed(Keys.LEFT) || leftPressed){
+			moveLeft();
+		}
+
+		if (Gdx.input.isKeyPressed(Keys.RIGHT) || rightPressed){
+			moveRight();
+		}
+
+		raya.velocity.add(0, GRAVITY);
+
+		// clamp the velocity to the maximum, x-axis only
+		if (Math.abs(raya.velocity.x) > RayaMan.MAX_VELOCITY) {
+			raya.velocity.x = Math.signum(raya.velocity.x) * RayaMan.MAX_VELOCITY;
+		}
+
+		// clamp the velocity to 0 if it's < 1, and set the state to standign
+		if (Math.abs(raya.velocity.x) < 1) {
+			raya.velocity.x = 0;
+			if (raya.grounded)
+				raya.state = RayaMan.State.Standing;
+		}
+
+		raya.velocity.scl(deltaTime);
+
+		//collision detection
+		// perform collision detection & response, on each axis, separately
+		// if the raya is moving right, check the tiles to the right of it's
+		// right bounding box edge, otherwise check the ones to the left
+		rayaRect = rectPool.obtain();
+
+		rayaRect.set((float)Math.round(raya.position.x), (float)Math.floor(raya.position.y), RayaMan.WIDTH, RayaMan.HEIGHT);
+
+		int startX, startY, endX, endY;
+
+		if (raya.velocity.x > 0) {
+			startX = endX = (int)((raya.position.x + raya.velocity.x + RayaMan.WIDTH) / 16);
+		}
+		else {
+			startX = endX = (int)((raya.position.x + raya.velocity.x) / 16);
+		}
+		startY = (int)Math.floor((raya.position.y) / 16);
+		endY = (int)Math.floor((raya.position.y + RayaMan.HEIGHT) / 16);
+
+		getTiles(startX, startY, endX, endY, tiles);
+
+		rayaRect.x += raya.velocity.x;
+
+		for (Rectangle tile : tiles) {
+			if (rayaRect.overlaps(tile)) {
+				raya.velocity.x = 0;
+				break;
+				}
+		}
+
+		rayaRect.x = raya.position.x;
+
+		// if the koala is moving upwards, check the tiles to the top of it's
+		// top bounding box edge, otherwise check the ones to the bottom
+
+		if (raya.velocity.y > 0) {
+			startY = endY = (int)((raya.position.y + raya.velocity.y + RayaMan.HEIGHT) / 16);
+		}
+		else {
+			startY = endY = (int)((raya.position.y + raya.velocity.y) / 16);
+		}
+
+		startX = (int)(raya.position.x / 16);					//16 tile size
+		endX = (int)((raya.position.x + RayaMan.WIDTH) / 16);
+
+		System.out.println(startX + " " + startY + " " + endX + " " + endY);
+
+		getTiles(startX, startY, endX, endY, tiles);
+
+
+
+		rayaRect.y += (int)(raya.velocity.y);
+
+		for (Rectangle tile : tiles) {
+			System.out.println(rayaRect.x + " " + rayaRect.y + " " + tile.x + " " + tile.y);
+			if (rayaRect.overlaps(tile)) {
+				// we actually reset the koala y-position here
+				// so it is just below/above the tile we collided with
+				// this removes bouncing :)
+				if (raya.velocity.y > 0) {
+					raya.position.y = tile.y - RayaMan.HEIGHT;
+					// we hit a block jumping upwards, let's destroy it!
+					}
+				else {
+					raya.position.y = tile.y + tile.height;
+					// if we hit the ground, mark us as grounded so we can jump
+					raya.grounded = true;
+					}
+				raya.velocity.y = 0;
+				break;
+				}
+			}
+		rectPool.free(rayaRect);
+
+		// unscale the velocity by the inverse delta time and set
+		// the latest position
+		raya.position.add(raya.velocity);
+		raya.velocity.scl(1 / deltaTime);
+		// Apply damping to the velocity on the x-axis so we don't
+		// walk infinitely once a key was pressed
+		raya.velocity.x *= RayaMan.DAMPING;
+	}
+
+	private void getTiles (int startX, int startY, int endX, int endY, Array<Rectangle> tiles) {
+
+		TiledMapTileLayer layer = (TiledMapTileLayer)(map.getLayers().get(1));
+		rectPool.freeAll(tiles);
+		tiles.clear();
+		for (int y = startY; y <= endY; y++) {
+			for (int x = startX; x <= endX; x++) {
+				Cell cell = layer.getCell(x, y);
+				if (cell != null) {
+					Rectangle rect = rectPool.obtain();
+					rect.set(x * 16, y  * 16, 16, 16);
+					tiles.add(rect);
+					}
+				}
+			}
+		}
+
+	private void moveLeft(){
+		raya.velocity.x = -RayaMan.MAX_VELOCITY;
+		if (raya.grounded) raya.state = RayaMan.State.Walking;
+		raya.facesRight = false;
+	}
+
+	private void moveRight(){
+		raya.velocity.x = RayaMan.MAX_VELOCITY;
+		if (raya.grounded) raya.state = RayaMan.State.Walking;
+		raya.facesRight = true;
+	}
+
+	private void moveJump(){
+		raya.velocity.y += RayaMan.JUMP_VELOCITY;
+		raya.grounded = false;
+		raya.state = RayaMan.State.Jumping;
+	}
+
+	private void configControllers() {
 		// CODIGO DE PRUEBAS PARA LOS MANDOS / GAMEPAD TESTING CODE
 
 		// print the currently connected controllers to the console
@@ -205,234 +443,5 @@ public class LudumGame extends ApplicationAdapter {
 		return false;
 		}
 		});
-	}
-
-	private void createAnimations() {
-		assetManager.load(TEXTURE_ATLAS_OBJECTS, TextureAtlas.class);
-		assetManager.finishLoading();
-
-		atlas = assetManager.get(TEXTURE_ATLAS_OBJECTS);
-		Array<AtlasRegion> regions;
-
-		regions = atlas.findRegions("rayaman_walking");
-		walk = new Animation(0.15f, regions);
-		walk.setPlayMode(Animation.PlayMode.LOOP);
-
-		regions = atlas.findRegions("rayaman_standing");
-		stand = new Animation(0, regions);
-		jump = new Animation(0, regions);
-
-		RayaMan.WIDTH = 16f;
-		RayaMan.HEIGHT = 21f;
-
-	}
-
-	@Override
-	public void render () {
-		Gdx.gl.glClearColor(1, 0, 0, 1);
-		Gdx.gl.glClear(GL20.GL_COLOR_BUFFER_BIT);
-
-		float deltaTime = Gdx.graphics.getDeltaTime();
-
-		updateRaya(deltaTime);
-
-		camera.position.x = 200;//raya.position.x;
-		camera.update();
-
-		renderer.setView(camera);
-		renderer.render();
-
-		renderRayaMan(deltaTime);
-	}
-
-	private void renderRayaMan (float deltaTime) {
-		// based on the koala state, get the animation frame
-		TextureRegion frame = null;
-		switch (raya.state) {
-		case Standing:
-			frame = stand.getKeyFrame(raya.stateTime);
-			break;
-		case Walking:
-			frame = walk.getKeyFrame(raya.stateTime);
-			break;
-		case Jumping:
-			frame = jump.getKeyFrame(raya.stateTime);
-			break;
-		}
-		// draw the koala, depending on the current velocity
-		// on the x-axis, draw the koala facing either right
-		// or left
-		Batch batch = renderer.getSpriteBatch();
-		batch.begin();
-		if (raya.facesRight) {
-			if (frame.isFlipX())
-				frame.flip(true, false);
-			batch.draw(frame, raya.position.x, raya.position.y);
-		} else {
-			if (!frame.isFlipX())
-				frame.flip(true, false);
-			batch.draw(frame, raya.position.x, raya.position.y);
-		}
-
-		batch.end();
-		shapeRenderer.begin(ShapeType.Filled);
-
-		shapeRenderer.setColor(Color.BLACK);
-
-		getTiles(0, 0, 25, 15, tiles);
-		for (Rectangle tile : tiles) {
-			shapeRenderer.rect(tile.x * 2, tile.y * 2, tile.width * 2, tile.height * 2);
-		}
-		shapeRenderer.setColor(Color.RED);
-		shapeRenderer.rect(rayaRect.x * 2, rayaRect.y * 2, rayaRect.width * 2, rayaRect.height * 2);
-
-        shapeRenderer.end();
-		}
-
-	private void updateRaya(float deltaTime) {
-
-		if (deltaTime == 0)
-			return;
-		raya.stateTime += deltaTime;
-
-		if ((Gdx.input.isKeyPressed(Keys.S) || jumpPressed) && raya.grounded){
-			moveJump();
-		}
-
-		if (Gdx.input.isKeyPressed(Keys.LEFT) || leftPressed){
-			moveLeft();
-		}
-
-		if (Gdx.input.isKeyPressed(Keys.RIGHT) || rightPressed){
-			moveRight();
-		}
-
-		raya.velocity.add(0, GRAVITY);
-
-		// clamp the velocity to the maximum, x-axis only
-//		if (Math.abs(koala.velocity.x) > Koala.MAX_VELOCITY) {
-//		koala.velocity.x = Math.signum(koala.velocity.x) * Koala.MAX_VELOCITY;
-//		}
-
-		// clamp the velocity to 0 if it's < 1, and set the state to standign
-		if (Math.abs(raya.velocity.x) < 1) {
-			raya.velocity.x = 0;
-			if (raya.grounded)
-				raya.state = RayaMan.State.Standing;
-		}
-
-		raya.velocity.scl(deltaTime);
-
-		//collision detection
-		// perform collision detection & response, on each axis, separately
-		// if the raya is moving right, check the tiles to the right of it's
-		// right bounding box edge, otherwise check the ones to the left
-		rayaRect = rectPool.obtain();
-
-		rayaRect.set(raya.position.x, raya.position.y, RayaMan.WIDTH, RayaMan.HEIGHT);
-
-		int startX, startY, endX, endY;
-
-		if (raya.velocity.x > 0) {
-			startX = endX = (int)((raya.position.x + raya.velocity.x + RayaMan.WIDTH) / 16);
-		}
-		else {
-			startX = endX = (int)((raya.position.x + raya.velocity.x) / 16);
-		}
-		startY = (int)((240 - (raya.position.y)) / 16);
-		endY = (int)((240 - raya.position.y + RayaMan.HEIGHT) / 16);
-
-		getTiles(startX, startY, endX, endY, tiles);
-
-		rayaRect.x += raya.velocity.x;
-
-		for (Rectangle tile : tiles) {
-			if (rayaRect.overlaps(tile)) {
-				raya.velocity.x = 0;
-				break;
-				}
-		}
-
-		rayaRect.x = raya.position.x;
-
-		// if the koala is moving upwards, check the tiles to the top of it's
-		// top bounding box edge, otherwise check the ones to the bottom
-
-		if (raya.velocity.y > 0) {
-			startY = endY = (int)((240 - (raya.position.y + raya.velocity.y + RayaMan.HEIGHT)) / 16);
-		}
-		else {
-			startY = endY = (int)((240 - (raya.position.y + raya.velocity.y)) / 16);
-		}
-
-		startX = (int)(raya.position.x / 16);					//16 tile size
-		endX = (int)((raya.position.x + RayaMan.WIDTH) / 16);
-
-		getTiles(startX, startY, endX, endY, tiles);
-
-		rayaRect.y -= (int)(raya.velocity.y);
-
-		for (Rectangle tile : tiles) {
-			if (rayaRect.overlaps(tile)) {
-				// we actually reset the koala y-position here
-				// so it is just below/above the tile we collided with
-				// this removes bouncing :)
-				if (raya.velocity.y > 0) {
-					raya.position.y = tile.y;
-					// we hit a block jumping upwards, let's destroy it!
-					}
-				else {
-					raya.position.y = tile.y;
-					// if we hit the ground, mark us as grounded so we can jump
-					raya.grounded = true;
-					}
-				raya.velocity.y = 0;
-				break;
-				}
-			}
-		rectPool.free(rayaRect);
-
-		// unscale the velocity by the inverse delta time and set
-		// the latest position
-		raya.position.add(raya.velocity);
-		raya.velocity.scl(1 / deltaTime);
-		// Apply damping to the velocity on the x-axis so we don't
-		// walk infinitely once a key was pressed
-		raya.velocity.x *= RayaMan.DAMPING;
-	}
-
-	private void getTiles (int startX, int startY, int endX, int endY, Array<Rectangle> tiles) {
-
-		TiledMapTileLayer layer = (TiledMapTileLayer)(map.getLayers().get(1));
-		rectPool.freeAll(tiles);
-		tiles.clear();
-		for (int y = startY; y <= endY; y++) {
-			for (int x = startX; x <= endX; x++) {
-				Cell cell = layer.getCell(x, y);
-				if (cell != null) {
-					Rectangle rect = rectPool.obtain();
-					rect.set(x * 16, y  * 16, 16, 16);
-					tiles.add(rect);
-					}
-				}
-			}
-		}
-
-	private void moveLeft(){
-		raya.velocity.x = -RayaMan.MAX_VELOCITY;
-		if (raya.grounded) raya.state = RayaMan.State.Walking;
-		raya.facesRight = false;
-	}
-
-	private void moveRight(){
-		raya.velocity.x = RayaMan.MAX_VELOCITY;
-		if (raya.grounded) raya.state = RayaMan.State.Walking;
-		raya.facesRight = true;
-	}
-
-	private void moveJump(){
-		raya.velocity.y += RayaMan.JUMP_VELOCITY;
-		raya.grounded = false;
-		raya.state = RayaMan.State.Jumping;
 	}
 }
