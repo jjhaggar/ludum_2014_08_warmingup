@@ -5,6 +5,7 @@ import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.assets.loaders.resolvers.InternalFileHandleResolver;
+import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
 import com.badlogic.gdx.graphics.Texture;
@@ -14,7 +15,10 @@ import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.TextureAtlas.AtlasRegion;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
+import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType;
 import com.badlogic.gdx.maps.Map;
+import com.badlogic.gdx.maps.MapLayer;
 import com.badlogic.gdx.maps.tiled.TiledMap;
 import com.badlogic.gdx.maps.tiled.TiledMapTileLayer;
 import com.badlogic.gdx.maps.tiled.TiledMapTileLayer.Cell;
@@ -28,6 +32,7 @@ import com.badlogic.gdx.utils.Pool;
 public class LudumGame extends ApplicationAdapter {
 
 	private SpriteBatch batch;
+	private ShapeRenderer shapeRenderer;
 	private Texture img;
 	private TiledMap map;
 	private OrthogonalTiledMapRenderer renderer;
@@ -40,6 +45,8 @@ public class LudumGame extends ApplicationAdapter {
 	private Texture rayaTexture;
 	private TextureAtlas atlas;
 	private String TEXTURE_ATLAS_OBJECTS = "rayaman.pack";
+	private Array<Rectangle> tiles = new Array<Rectangle>();
+	Rectangle rayaRect;
 
 
 
@@ -76,19 +83,22 @@ public class LudumGame extends ApplicationAdapter {
 	public void create () {
 
 		assetManager = new AssetManager();
+		shapeRenderer = new ShapeRenderer();
+
 		createAnimations();
 
 		map = new TmxMapLoader().load("prueba.tmx");
 
 		renderer = new OrthogonalTiledMapRenderer(map, 1);
 
+		Gdx.graphics.setDisplayMode(400, 240, false);
 		camera = new OrthographicCamera();
 		camera.setToOrtho(false, 400, 240);
 		camera.update();
 
 
 		raya = new RayaMan();
-		raya.position.set(20,20);
+		raya.position.set(0,130);
 	}
 
 	private void createAnimations() {
@@ -120,7 +130,7 @@ public class LudumGame extends ApplicationAdapter {
 
 		updateRaya(deltaTime);
 
-		camera.position.x = raya.position.x;
+		camera.position.x = 200;//raya.position.x;
 		camera.update();
 
 		renderer.setView(camera);
@@ -157,10 +167,24 @@ public class LudumGame extends ApplicationAdapter {
 				frame.flip(true, false);
 			batch.draw(frame, raya.position.x, raya.position.y);
 		}
+
 		batch.end();
+		shapeRenderer.begin(ShapeType.Filled);
+
+		shapeRenderer.setColor(Color.BLACK);
+
+		getTiles(0, 0, 25, 15, tiles);
+		for (Rectangle tile : tiles) {
+			shapeRenderer.rect(tile.x * 2, tile.y * 2, tile.width * 2, tile.height * 2);
+		}
+		shapeRenderer.setColor(Color.RED);
+		shapeRenderer.rect(rayaRect.x * 2, rayaRect.y * 2, rayaRect.width * 2, rayaRect.height * 2);
+
+        shapeRenderer.end();
 		}
 
 	private void updateRaya(float deltaTime) {
+
 		if (deltaTime == 0)
 			return;
 
@@ -191,20 +215,83 @@ public class LudumGame extends ApplicationAdapter {
 //		koala.velocity.x = Math.signum(koala.velocity.x) * Koala.MAX_VELOCITY;
 //		}
 
-		if (raya.velocity.y < 0.5){
-			raya.velocity.y = 0;
-			raya.grounded = true;
-		}
 		// clamp the velocity to 0 if it's < 1, and set the state to standign
 		if (Math.abs(raya.velocity.x) < 1) {
-		raya.velocity.x = 0;
-		if (raya.grounded) raya.state = RayaMan.State.Standing;
+			raya.velocity.x = 0;
+			if (raya.grounded)
+				raya.state = RayaMan.State.Standing;
 		}
 
 		raya.velocity.scl(deltaTime);
 
 		//collision detection
+		// perform collision detection & response, on each axis, separately
+		// if the raya is moving right, check the tiles to the right of it's
+		// right bounding box edge, otherwise check the ones to the left
+		rayaRect = rectPool.obtain();
 
+		rayaRect.set(raya.position.x, raya.position.y, RayaMan.WIDTH, RayaMan.HEIGHT);
+
+		int startX, startY, endX, endY;
+
+		if (raya.velocity.x > 0) {
+			startX = endX = (int)((raya.position.x + raya.velocity.x + RayaMan.WIDTH) / 16);
+		}
+		else {
+			startX = endX = (int)((raya.position.x + raya.velocity.x) / 16);
+		}
+		startY = (int)((240 - (raya.position.y)) / 16);
+		endY = (int)((240 - raya.position.y + RayaMan.HEIGHT) / 16);
+
+		getTiles(startX, startY, endX, endY, tiles);
+
+		rayaRect.x += raya.velocity.x;
+
+		for (Rectangle tile : tiles) {
+			if (rayaRect.overlaps(tile)) {
+				raya.velocity.x = 0;
+				break;
+				}
+		}
+
+		rayaRect.x = raya.position.x;
+
+		// if the koala is moving upwards, check the tiles to the top of it's
+		// top bounding box edge, otherwise check the ones to the bottom
+
+		if (raya.velocity.y > 0) {
+			startY = endY = (int)((240 - (raya.position.y + raya.velocity.y + RayaMan.HEIGHT)) / 16);
+		}
+		else {
+			startY = endY = (int)((240 - (raya.position.y + raya.velocity.y)) / 16);
+		}
+
+		startX = (int)(raya.position.x / 16);					//16 tile size
+		endX = (int)((raya.position.x + RayaMan.WIDTH) / 16);
+
+		getTiles(startX, startY, endX, endY, tiles);
+
+		rayaRect.y -= (int)(raya.velocity.y);
+
+		for (Rectangle tile : tiles) {
+			if (rayaRect.overlaps(tile)) {
+				// we actually reset the koala y-position here
+				// so it is just below/above the tile we collided with
+				// this removes bouncing :)
+				if (raya.velocity.y > 0) {
+					raya.position.y = tile.y;
+					// we hit a block jumping upwards, let's destroy it!
+					}
+				else {
+					raya.position.y = tile.y;
+					// if we hit the ground, mark us as grounded so we can jump
+					raya.grounded = true;
+					}
+				raya.velocity.y = 0;
+				break;
+				}
+			}
+		rectPool.free(rayaRect);
 
 		// unscale the velocity by the inverse delta time and set
 		// the latest position
@@ -217,7 +304,7 @@ public class LudumGame extends ApplicationAdapter {
 
 	private void getTiles (int startX, int startY, int endX, int endY, Array<Rectangle> tiles) {
 
-		TiledMapTileLayer layer = (TiledMapTileLayer)map.getLayers().get(1);
+		TiledMapTileLayer layer = (TiledMapTileLayer)(map.getLayers().get(1));
 		rectPool.freeAll(tiles);
 		tiles.clear();
 		for (int y = startY; y <= endY; y++) {
@@ -225,7 +312,7 @@ public class LudumGame extends ApplicationAdapter {
 				Cell cell = layer.getCell(x, y);
 				if (cell != null) {
 					Rectangle rect = rectPool.obtain();
-					rect.set(x, y, 1, 1);
+					rect.set(x * 16, y  * 16, 16, 16);
 					tiles.add(rect);
 					}
 				}
