@@ -44,7 +44,7 @@ public class LudumGame extends ApplicationAdapter {
 	private OrthogonalTiledMapRenderer renderer;
 	private OrthographicCamera camera;
 	private AssetManager assetManager;
-	private float GRAVITY = -5f;
+	private float GRAVITY = -10f;
 	private Animation stand;
 	private Animation walk;
 	private Animation jump;
@@ -76,7 +76,7 @@ public class LudumGame extends ApplicationAdapter {
 		static float WIDTH;
 		static float HEIGHT;
 		static float MAX_VELOCITY = 100f;
-		static float JUMP_VELOCITY = 150f;
+		static float JUMP_VELOCITY = 210f;
 		static float DAMPING = 0.87f;
 		enum State {
 			Standing, Walking, Jumping
@@ -195,7 +195,7 @@ public class LudumGame extends ApplicationAdapter {
 			shapeRenderer.rect(tile.x * 1.6f, tile.y * 2, tile.width * 2, tile.height * 2);
 		}
 		shapeRenderer.setColor(Color.RED);
-		shapeRenderer.rect(rayaRect.x * 1.6f, rayaRect.y * 2, rayaRect.width * 2, rayaRect.height * 2);
+		//shapeRenderer.rect(rayaRect.x * 1.6f, rayaRect.y * 2, rayaRect.width * 2, rayaRect.height * 2);
 
 
         shapeRenderer.end();
@@ -337,7 +337,7 @@ public class LudumGame extends ApplicationAdapter {
 
 		// Apply damping to the velocity on the x-axis so we don't
 		// walk infinitely once a key was pressed
-		raya.velocity.x *= RayaMan.DAMPING;
+		raya.velocity.x *= 0;		//0 is totally stopped if not pressed
 
 		raya.position.y = raya.desiredPosition.y;
 		raya.position.x = raya.desiredPosition.x;
