@@ -76,7 +76,7 @@ public class LudumGame extends ApplicationAdapter {
 		static float WIDTH;
 		static float HEIGHT;
 		static float MAX_VELOCITY = 100f;
-		static float JUMP_VELOCITY = 210f;
+		static float JUMP_VELOCITY = 250f; // 210f;
 		static float DAMPING = 0.87f;
 		enum State {
 			Standing, Walking, Jumping
@@ -100,7 +100,7 @@ public class LudumGame extends ApplicationAdapter {
 
 		createAnimations();
 
-		map = new TmxMapLoader().load("prueba.tmx");
+		map = new TmxMapLoader().load("prueba_scroll.tmx");
 
 		renderer = new OrthogonalTiledMapRenderer(map, 1);
 
@@ -147,7 +147,7 @@ public class LudumGame extends ApplicationAdapter {
 
 		updateRaya(deltaTime);
 
-		camera.position.x = 200;//raya.position.x;
+		camera.position.x = raya.position.x; //200;//raya.position.x;
 		camera.update();
 
 		renderer.setView(camera);
@@ -192,7 +192,7 @@ public class LudumGame extends ApplicationAdapter {
 
 		getTiles(0, 0, 25, 15, tiles);
 		for (Rectangle tile : tiles) {
-			shapeRenderer.rect(tile.x * 1.6f, tile.y * 2, tile.width * 2, tile.height * 2);
+			// shapeRenderer.rect(tile.x * 1.6f, tile.y * 2, tile.width * 2, tile.height * 2);
 		}
 		shapeRenderer.setColor(Color.RED);
 		//shapeRenderer.rect(rayaRect.x * 1.6f, rayaRect.y * 2, rayaRect.width * 2, rayaRect.height * 2);
@@ -297,14 +297,14 @@ public class LudumGame extends ApplicationAdapter {
 		startX = (int)(raya.desiredPosition.x / 16);					//16 tile size
 		endX = (int)((raya.desiredPosition.x + RayaMan.WIDTH) / 16);
 
-		System.out.println(startX + " " + startY + " " + endX + " " + endY);
+		// System.out.println(startX + " " + startY + " " + endX + " " + endY);
 
 		getTiles(startX, startY, endX, endY, tiles);
 
 		rayaRect.y += (int)(raya.velocity.y);
 
 		for (Rectangle tile : tiles) {
-			System.out.println(rayaRect.x + " " + rayaRect.y + " " + tile.x + " " + tile.y);
+			// System.out.println(rayaRect.x + " " + rayaRect.y + " " + tile.x + " " + tile.y);
 			if (rayaRect.overlaps(tile)) {
 				// we actually reset the koala y-position here
 				// so it is just below/above the tile we collided with
@@ -396,7 +396,7 @@ public class LudumGame extends ApplicationAdapter {
 		}
 		@Override
 		public boolean buttonDown (Controller controller, int buttonIndex) {
-			System.out.println("#" + indexOf(controller) + ", button " + buttonIndex + " down");
+			// System.out.println("#" + indexOf(controller) + ", button " + buttonIndex + " down");
 			if (buttonIndex == 0){
 				jumpPressed = true;
 			}
@@ -404,7 +404,7 @@ public class LudumGame extends ApplicationAdapter {
 		}
 		@Override
 		public boolean buttonUp (Controller controller, int buttonIndex) {
-			System.out.println("#" + indexOf(controller) + ", button " + buttonIndex + " up");
+			// System.out.println("#" + indexOf(controller) + ", button " + buttonIndex + " up");
 			if (buttonIndex == 0){
 				jumpPressed = false;
 			}
@@ -412,13 +412,12 @@ public class LudumGame extends ApplicationAdapter {
 		}
 		@Override
 		public boolean axisMoved (Controller controller, int axisIndex, float value) {
-			System.out.println("#" + indexOf(controller) + ", axis " + axisIndex + ": " + value);
+			// System.out.println("#" + indexOf(controller) + ", axis " + axisIndex + ": " + value);
 		return false;
 		}
 		@Override
 		public boolean povMoved (Controller controller, int povIndex, PovDirection value) {
-			System.out.println("#" + indexOf(controller) + ", pov " + povIndex + ": " + value);
-			System.out.println(value);
+			// System.out.println("#" + indexOf(controller) + ", pov " + povIndex + ": " + value);
 
 			if (value.equals("west") || value == PovDirection.west){
 				rightPressed = false;
@@ -440,12 +439,12 @@ public class LudumGame extends ApplicationAdapter {
 		}
 		@Override
 		public boolean xSliderMoved (Controller controller, int sliderIndex, boolean value) {
-			System.out.println("#" + indexOf(controller) + ", x slider " + sliderIndex + ": " + value);
+			// System.out.println("#" + indexOf(controller) + ", x slider " + sliderIndex + ": " + value);
 		return false;
 		}
 		@Override
 		public boolean ySliderMoved (Controller controller, int sliderIndex, boolean value) {
-			System.out.println("#" + indexOf(controller) + ", y slider " + sliderIndex + ": " + value);
+			// System.out.println("#" + indexOf(controller) + ", y slider " + sliderIndex + ": " + value);
 		return false;
 		}
 		@Override
