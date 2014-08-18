@@ -131,6 +131,8 @@ public class LudumGame extends ApplicationAdapter {
 
 		regions = atlas.findRegions("rayaman_standing");
 		stand = new Animation(0, regions);
+
+		regions = atlas.findRegions("rayaman_jumping");
 		jump = new Animation(0, regions);
 
 		RayaMan.WIDTH = 16f;
