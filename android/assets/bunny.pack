@@ -1,33 +1,34 @@
 
 bunny.png
+size: 408,102
 format: RGBA8888
 filter: Nearest,Nearest
 repeat: none
 bunny
   rotate: false
-  xy: 1, 1
-  size: 52, 86
+  xy: 2, 2
+  size: 100, 100
   orig: 100, 100
-  offset: 8, 6
-  index: 4
-bunny
-  rotate: false
-  xy: 55, 9
-  size: 54, 78
-  orig: 100, 100
-  offset: 6, 12
-  index: 3
-bunny
-  rotate: false
-  xy: 111, 13
-  size: 50, 74
-  orig: 100, 100
-  offset: 8, 18
+  offset: 0, 0
   index: 1
 bunny
   rotate: false
-  xy: 163, 15
-  size: 52, 72
+  xy: 104, 2
+  size: 100, 100
   orig: 100, 100
-  offset: 6, 20
+  offset: 0, 0
   index: 2
+bunny
+  rotate: false
+  xy: 206, 2
+  size: 100, 100
+  orig: 100, 100
+  offset: 0, 0
+  index: 3
+bunny
+  rotate: false
+  xy: 308, 2
+  size: 100, 100
+  orig: 100, 100
+  offset: 0, 0
+  index: 4

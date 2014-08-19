@@ -1,6 +1,6 @@
 name=bunny
 filename=
-input=bunny_input
+input=bunny
 output=..\android\assets
 
 alias=true
