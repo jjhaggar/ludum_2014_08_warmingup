@@ -2,16 +2,10 @@ package com.mygdx.ludum;
 
 import com.badlogic.gdx.Gdx;
 import com.badlogic.gdx.Input.Keys;
-import com.badlogic.gdx.assets.AssetManager;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
-import com.badlogic.gdx.graphics.Texture;
-import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.Batch;
-import com.badlogic.gdx.graphics.g2d.SpriteBatch;
-import com.badlogic.gdx.graphics.g2d.TextureAtlas;
-import com.badlogic.gdx.graphics.g2d.TextureAtlas.AtlasRegion;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType;
@@ -21,33 +15,18 @@ import com.badlogic.gdx.maps.tiled.TiledMapTileLayer.Cell;
 import com.badlogic.gdx.maps.tiled.TmxMapLoader;
 import com.badlogic.gdx.maps.tiled.renderers.OrthogonalTiledMapRenderer;
 import com.badlogic.gdx.math.Rectangle;
-import com.badlogic.gdx.math.Vector2;
 import com.badlogic.gdx.utils.Array;
 import com.badlogic.gdx.utils.Pool;
 
 public class MainScreen extends BaseScreen {
 
-	private SpriteBatch batch;
 	private ShapeRenderer shapeRenderer;
-	private Texture img;
 	private TiledMap map;
 	private OrthogonalTiledMapRenderer renderer;
 	private OrthographicCamera camera;
-	private AssetManager assetManager;
 	private float GRAVITY = -10f;
-	private Animation stand;
-	private Animation walk;
-	private Animation jump;
-	private Animation standingShot;
-	private Animation shotAnim;
-	private Texture rayaTexture;
-	private TextureAtlas atlas;
-	private String TEXTURE_ATLAS_OBJECTS = "rayaman.pack";
 	private Array<Rectangle> tiles = new Array<Rectangle>();
 	Rectangle rayaRect;
-
-	final Vector2 positionOffsetForShot = new Vector2();
-	final Vector2 positionOffsetOfCharacter = new Vector2();
 
 	ConfigControllers configControllers = new ConfigControllers();
 
@@ -63,10 +42,8 @@ public class MainScreen extends BaseScreen {
 
 
 	public MainScreen() {
-		this.assetManager = new AssetManager();
 		this.shapeRenderer = new ShapeRenderer();
-
-		this.createAnimations();
+		Assets.loadAnimation();
 
 		this.map = new TmxMapLoader().load("prueba_scroll.tmx");
 
@@ -77,40 +54,12 @@ public class MainScreen extends BaseScreen {
 		this.camera.setToOrtho(false, 400, 240);
 		this.camera.update();
 
-		this.raya = new RayaMan(this.stand);
+		this.raya = new RayaMan(Assets.stand);
 		this.raya.setPosition(0, 64);
 
 		this.configControllers.init();
 	}
 
-
-	private void createAnimations() {
-		this.assetManager.load(this.TEXTURE_ATLAS_OBJECTS, TextureAtlas.class);
-		this.assetManager.finishLoading();
-
-		this.atlas = this.assetManager.get(this.TEXTURE_ATLAS_OBJECTS);
-		Array<AtlasRegion> regions;
-
-		regions = this.atlas.findRegions("rayaman_walking");
-		this.walk = new Animation(0.15f, regions);
-		this.walk.setPlayMode(Animation.PlayMode.LOOP);
-
-		regions = this.atlas.findRegions("rayaman_standing");
-		this.stand = new Animation(0, regions);
-
-		regions = this.atlas.findRegions("rayaman_jumping");
-		this.jump = new Animation(0, regions);
-
-		regions = this.atlas.findRegions("rayaman_standing_shot");
-		this.standingShot = new Animation(0.15f, regions);
-		this.positionOffsetOfCharacter.x = regions.first().offsetX;
-		this.positionOffsetOfCharacter.y = regions.first().offsetY;
-
-		regions = this.atlas.findRegions("rayaman_shot");
-		this.shotAnim = new Animation(0.15f, regions);
-		this.positionOffsetForShot.x = regions.first().offsetX;
-		this.positionOffsetForShot.y = regions.first().offsetY;
-	}
 
 	@Override
 	public void render(float delta) {
@@ -132,18 +81,18 @@ public class MainScreen extends BaseScreen {
 
 	private void renderShot(float deltaTime){
 		TextureRegion frame = null;
-		frame = this.shotAnim.getKeyFrame(this.shot.stateTime);
+		frame = Assets.shotAnim.getKeyFrame(this.shot.stateTime);
 
 		Batch batch = this.renderer.getSpriteBatch();
 		batch.begin();
 		if (this.shot.shotGoesRight) {
 			if (frame.isFlipX())
 				frame.flip(true, false);
-			batch.draw(frame, this.shot.position.x, this.shot.position.y);
+			batch.draw(frame, this.shot.getX(), this.shot.getY());
 		} else {
 			if (!frame.isFlipX())
 				frame.flip(true, false);
-			batch.draw(frame, this.shot.position.x, this.shot.position.y);
+			batch.draw(frame, this.shot.getX(), this.shot.getY());
 		}
 
 		batch.end();
@@ -154,16 +103,16 @@ public class MainScreen extends BaseScreen {
 		TextureRegion frame = null;
 		switch (this.raya.state) {
 		case Standing:
-			frame = this.stand.getKeyFrame(this.raya.stateTime);
+			frame = Assets.stand.getKeyFrame(this.raya.stateTime);
 			break;
 		case Walking:
-			frame = this.walk.getKeyFrame(this.raya.stateTime);
+			frame = Assets.walk.getKeyFrame(this.raya.stateTime);
 			break;
 		case Jumping:
-			frame = this.jump.getKeyFrame(this.raya.stateTime);
+			frame = Assets.jump.getKeyFrame(this.raya.stateTime);
 			break;
 		case StandingShooting:
-			frame = this.standingShot.getKeyFrame(this.raya.stateTime);
+			frame = Assets.standingShot.getKeyFrame(this.raya.stateTime);
 			break;
 		}
 		// draw the koala, depending on the current velocity
@@ -187,9 +136,9 @@ public class MainScreen extends BaseScreen {
 		this.shapeRenderer.setColor(Color.BLACK);
 
 		this.getTiles(0, 0, 25, 15, this.tiles);
-		for (Rectangle tile : this.tiles) {
-			// shapeRenderer.rect(tile.x * 1.6f, tile.y * 2, tile.width * 2, tile.height * 2);
-		}
+		//for (Rectangle tile : this.tiles) {
+		//	shapeRenderer.rect(tile.x * 1.6f, tile.y * 2, tile.width * 2, tile.height * 2);
+		//}
 		this.shapeRenderer.setColor(Color.RED);
 		//shapeRenderer.rect(rayaRect.x * 1.6f, rayaRect.y * 2, rayaRect.width * 2, rayaRect.height * 2);
 
@@ -233,13 +182,12 @@ public class MainScreen extends BaseScreen {
 
 		if (Gdx.input.isKeyPressed(Keys.D)){
 			if (this.raya.facesRight){
-				this.shot = new Shot((this.raya.getX() + this.positionOffsetForShot.x) - this.positionOffsetOfCharacter.x - 2
-						, (this.raya.getY() + this.positionOffsetForShot.y) - this.positionOffsetOfCharacter.y, this.raya.facesRight);
+				this.shot = new Shot(this.raya.getX() + (this.raya.getHeight() / 2), (this.raya.getY() + (this.raya.getWidth() / 2)), this.raya.facesRight, Assets.shotAnim);
 			}
 			else {
-				this.shot = new Shot((((this.raya.getX() + this.raya.WIDTH) - this.positionOffsetForShot.x) + this.positionOffsetOfCharacter.x) - 4
-						, (this.raya.getY() + this.positionOffsetForShot.y) - this.positionOffsetOfCharacter.y, this.raya.facesRight);
+				this.shot = new Shot(this.raya.getX(), (this.raya.getY() + (this.raya.getWidth() / 2)), this.raya.facesRight, Assets.shotAnim);
 			}
+			this.shot.setY(this.shot.getY() + (this.shot.getWidth() / 2));
 
 			if (this.raya.grounded){	//&& raya.velocity.x == 0)
 				this.raya.state = RayaMan.State.StandingShooting;
@@ -248,7 +196,7 @@ public class MainScreen extends BaseScreen {
 			this.raya.shooting = true;
 		}
 
-		if (this.standingShot.isAnimationFinished(this.raya.stateTime))
+		if (Assets.standingShot.isAnimationFinished(this.raya.stateTime))
 			this.raya.shooting = false;
 
 		if (this.shot != null)

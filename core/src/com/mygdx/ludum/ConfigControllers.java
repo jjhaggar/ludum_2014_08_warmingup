@@ -29,9 +29,9 @@ public class ConfigControllers {
 
         // setup the listener that prints events to the console
         Controllers.addListener(new ControllerListener() {
-            public int indexOf (Controller controller) {
-                return Controllers.getControllers().indexOf(controller, true);
-            }
+            //public int indexOf(Controller controller) {
+            //    return Controllers.getControllers().indexOf(controller, true);
+            //}
 
             @Override
             public void connected (Controller controller) {
