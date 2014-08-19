@@ -31,16 +31,8 @@ public class Assets {
 
 		regions = atlas.findRegions("rayaman_standing_shot");
 		standingShot = new Animation(0.15f, regions);
-		System.out.println(regions.first().offsetX);
-		System.out.println(regions.first().offsetY);
-		//positionOffsetOfCharacter.x = regions.first().offsetX;
-		//positionOffsetOfCharacter.y = regions.first().offsetY;
 
 		regions = atlas.findRegions("rayaman_shot");
 		shotAnim = new Animation(0.15f, regions);
-		System.out.println(regions.first().offsetX);
-		System.out.println(regions.first().offsetY);
-		//positionOffsetForShot.x = regions.first().offsetX;
-		//positionOffsetForShot.y = regions.first().offsetY;
 	}
 }
