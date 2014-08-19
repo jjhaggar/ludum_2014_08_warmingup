@@ -5,8 +5,11 @@ import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
+import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.Batch;
+import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
+import com.badlogic.gdx.graphics.g2d.TextureAtlas.AtlasRegion;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType;
 import com.badlogic.gdx.maps.tiled.TiledMap;
@@ -159,14 +162,14 @@ public class MainScreen extends BaseScreen {
 			this.raya.velocity.y = this.raya.JUMP_VELOCITY;
 			this.raya.grounded = false;
 			this.raya.state = RayaMan.State.Jumping;
-			this.raya.stateTime = 0;
+			//this.raya.stateTime = 0;
 		}
 
 		if (Gdx.input.isKeyPressed(Keys.LEFT) || this.configControllers.leftPressed){
 			this.raya.velocity.x = -this.raya.MAX_VELOCITY;
 			if (this.raya.grounded){
 				this.raya.state = RayaMan.State.Walking;
-				this.raya.stateTime = 0;
+				//this.raya.stateTime = 0;
 			}
 			this.raya.facesRight = false;
 		}
@@ -175,14 +178,15 @@ public class MainScreen extends BaseScreen {
 			this.raya.velocity.x = this.raya.MAX_VELOCITY;
 			if (this.raya.grounded){
 				this.raya.state = RayaMan.State.Walking;
-				this.raya.stateTime = 0;
+				//this.raya.stateTime = 0;
 			}
 			this.raya.facesRight = true;
 		}
 
 		if (Gdx.input.isKeyPressed(Keys.D)){
 			if (this.raya.facesRight){
-				this.shot = new Shot(this.raya.getX() + (this.raya.getHeight() / 2), (this.raya.getY() + (this.raya.getWidth() / 2)), this.raya.facesRight, Assets.shotAnim);
+				//-1 necessary to be exactly the same as the other facing
+				this.shot = new Shot(this.raya.getX() + (this.raya.getHeight() / 2) - 1, (this.raya.getY() + (this.raya.getWidth() / 2)), this.raya.facesRight, Assets.shotAnim);
 			}
 			else {
 				this.shot = new Shot(this.raya.getX(), (this.raya.getY() + (this.raya.getWidth() / 2)), this.raya.facesRight, Assets.shotAnim);
@@ -222,7 +226,7 @@ public class MainScreen extends BaseScreen {
 		// perform collision detection & response, on each axis, separately
 		// if the raya is moving right, check the tiles to the right of it's
 		// right bounding box edge, otherwise check the ones to the left
-		this.rayaRect = new Rectangle();//rectPool.obtain();
+		this.rayaRect = rectPool.obtain();
 
 		this.raya.desiredPosition.y = Math.round(this.raya.getY());
 		this.raya.desiredPosition.x = Math.round(this.raya.getX());
@@ -302,7 +306,7 @@ public class MainScreen extends BaseScreen {
 			this.raya.grounded = false;
 
 		//goes together with get
-		//rectPool.free(rayaRect);
+		rectPool.free(rayaRect);
 
 		// unscale the velocity by the inverse delta time and set
 		// the latest position
