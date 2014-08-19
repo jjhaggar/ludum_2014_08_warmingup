@@ -48,11 +48,16 @@ public class LudumGame extends ApplicationAdapter {
 	private Animation stand;
 	private Animation walk;
 	private Animation jump;
+	private Animation standingShot;
+	private Animation shotAnim;
 	private Texture rayaTexture;
 	private TextureAtlas atlas;
 	private String TEXTURE_ATLAS_OBJECTS = "rayaman.pack";
 	private Array<Rectangle> tiles = new Array<Rectangle>();
 	Rectangle rayaRect;
+
+	final Vector2 positionOffsetForShot = new Vector2();
+	final Vector2 positionOffsetOfCharacter = new Vector2();
 
 	// Botones del mando / Gamepad Buttons
 	private boolean leftPressed = false;
@@ -79,7 +84,7 @@ public class LudumGame extends ApplicationAdapter {
 		static float JUMP_VELOCITY = 250f; // 210f;
 		static float DAMPING = 0.87f;
 		enum State {
-			Standing, Walking, Jumping
+			Standing, Walking, Jumping, StandingShooting
 		}
 		final Vector2 position = new Vector2();
 		Vector2 desiredPosition = new Vector2();
@@ -89,8 +94,35 @@ public class LudumGame extends ApplicationAdapter {
 		boolean facesRight = true;
 		boolean grounded = true;
 		public boolean updateVelocity;
+		public boolean shooting = false;
 
 		}
+
+	private Shot shot;
+
+	public class Shot {
+		final Vector2 position = new Vector2();
+
+		float SHOT_VELOCITY = 200f;
+		float stateTime = 0;
+		boolean shotGoesRight;
+
+
+		public Shot(float x, float y, boolean facesRight){
+			position.x = x;
+			position.y = y;
+			shotGoesRight = facesRight;
+		}
+
+		public void updateShot(float deltaTime){
+			if (shotGoesRight)
+				position.x += deltaTime * SHOT_VELOCITY;
+			else
+				position.x -= deltaTime * SHOT_VELOCITY;
+
+			shot.stateTime += deltaTime;
+		}
+	}
 
 	@Override
 	public void create () {
@@ -135,6 +167,16 @@ public class LudumGame extends ApplicationAdapter {
 		regions = atlas.findRegions("rayaman_jumping");
 		jump = new Animation(0, regions);
 
+		regions = atlas.findRegions("rayaman_standing_shot");
+		standingShot = new Animation(0.15f, regions);
+		positionOffsetOfCharacter.x = regions.first().offsetX;
+		positionOffsetOfCharacter.y = regions.first().offsetY;
+
+		regions = atlas.findRegions("rayaman_shot");
+		shotAnim = new Animation(0.15f, regions);
+		positionOffsetForShot.x = regions.first().offsetX;
+		positionOffsetForShot.y = regions.first().offsetY;
+
 		RayaMan.WIDTH = 16f;
 		RayaMan.HEIGHT = 21f;
 
@@ -156,6 +198,27 @@ public class LudumGame extends ApplicationAdapter {
 		renderer.render();
 
 		renderRayaMan(deltaTime);
+		if (shot != null)
+			renderShot(deltaTime);
+	}
+
+	private void renderShot(float deltaTime){
+		TextureRegion frame = null;
+		frame = shotAnim.getKeyFrame(shot.stateTime);
+
+		Batch batch = renderer.getSpriteBatch();
+		batch.begin();
+		if (shot.shotGoesRight) {
+			if (frame.isFlipX())
+				frame.flip(true, false);
+			batch.draw(frame, shot.position.x, shot.position.y);
+		} else {
+			if (!frame.isFlipX())
+				frame.flip(true, false);
+			batch.draw(frame, shot.position.x, shot.position.y);
+		}
+
+		batch.end();
 	}
 
 	private void renderRayaMan (float deltaTime) {
@@ -170,6 +233,9 @@ public class LudumGame extends ApplicationAdapter {
 			break;
 		case Jumping:
 			frame = jump.getKeyFrame(raya.stateTime);
+			break;
+		case StandingShooting:
+			frame = standingShot.getKeyFrame(raya.stateTime);
 			break;
 		}
 		// draw the koala, depending on the current velocity
@@ -216,19 +282,49 @@ public class LudumGame extends ApplicationAdapter {
 			raya.velocity.y = RayaMan.JUMP_VELOCITY;
 			raya.grounded = false;
 			raya.state = RayaMan.State.Jumping;
+			raya.stateTime = 0;
 		}
 
 		if (Gdx.input.isKeyPressed(Keys.LEFT) || leftPressed){
 			raya.velocity.x = -RayaMan.MAX_VELOCITY;
-			if (raya.grounded) raya.state = RayaMan.State.Walking;
+			if (raya.grounded){
+				raya.state = RayaMan.State.Walking;
+				raya.stateTime = 0;
+			}
 			raya.facesRight = false;
 		}
 
 		if (Gdx.input.isKeyPressed(Keys.RIGHT) || rightPressed){
 			raya.velocity.x = RayaMan.MAX_VELOCITY;
-			if (raya.grounded) raya.state = RayaMan.State.Walking;
+			if (raya.grounded){
+				raya.state = RayaMan.State.Walking;
+				raya.stateTime = 0;
+			}
 			raya.facesRight = true;
 		}
+
+		if (Gdx.input.isKeyPressed(Keys.D)){
+			if (raya.facesRight){
+				shot = new Shot(raya.position.x + positionOffsetForShot.x - positionOffsetOfCharacter.x - 2
+						, raya.position.y + positionOffsetForShot.y - positionOffsetOfCharacter.y, raya.facesRight);
+			}
+			else {
+				shot = new Shot(raya.position.x + RayaMan.WIDTH - positionOffsetForShot.x + positionOffsetOfCharacter.x - 4
+						, raya.position.y + positionOffsetForShot.y - positionOffsetOfCharacter.y, raya.facesRight);
+			}
+
+			if (raya.grounded){	//&& raya.velocity.x == 0)
+				raya.state = RayaMan.State.StandingShooting;
+				raya.stateTime = 0;
+			}
+			raya.shooting = true;
+		}
+
+		if (standingShot.isAnimationFinished(raya.stateTime))
+			raya.shooting = false;
+
+		if (shot != null)
+			shot.updateShot(deltaTime);		//pool of shots?
 
 		raya.velocity.add(0, GRAVITY);
 
@@ -240,7 +336,7 @@ public class LudumGame extends ApplicationAdapter {
 		// clamp the velocity to 0 if it's < 1, and set the state to standign
 		if (Math.abs(raya.velocity.x) < 1) {
 			raya.velocity.x = 0;
-			if (raya.grounded)
+			if (raya.grounded && !raya.shooting)
 				raya.state = RayaMan.State.Standing;
 		}
 
