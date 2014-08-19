@@ -1,7 +1,7 @@
 name=rayaman
 filename=
 input=rayaman_input
-output=rayaman_output
+output=..\..\android\assets
 
 alias=true
 alphaThreshold=0
