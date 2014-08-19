@@ -1,5 +1,6 @@
 
 bunny.png
+size: 216,88
 format: RGBA8888
 filter: Nearest,Nearest
 repeat: none
