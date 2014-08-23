@@ -6,8 +6,6 @@ import com.badlogic.gdx.scenes.scene2d.ui.Image;
 import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 
 public class RayaMan extends Image {
-    final float WIDTH = 16f;
-    final float HEIGHT = 21f;
     final float MAX_VELOCITY = 100f;
     final float JUMP_VELOCITY = 250f; // 210f;
     final float DAMPING = 0.87f;
