@@ -7,7 +7,7 @@ import com.badlogic.gdx.scenes.scene2d.utils.TextureRegionDrawable;
 
 public class RayaMan extends Image {
     final float MAX_VELOCITY = 100f;
-    final float JUMP_VELOCITY = 250f; // 210f;
+    final float JUMP_VELOCITY = 255f; // 210f;
     final float DAMPING = 0.87f;
     enum State {
         Standing, Walking, Jumping, StandingShooting
