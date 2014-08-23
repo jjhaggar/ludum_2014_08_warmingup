@@ -23,7 +23,7 @@ public class DesktopLauncher {
                 file.delete();
 	        }
 	        // Create new pack
-            TexturePacker.process("../assets/" + folder, "../android/assets/", folder + ".pack");
+            TexturePacker.process("../ASSETS/" + folder, "../android/assets/", folder + ".pack");
 	    }
 	}
 }
