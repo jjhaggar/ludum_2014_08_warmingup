@@ -5,11 +5,8 @@ import com.badlogic.gdx.Input.Keys;
 import com.badlogic.gdx.graphics.Color;
 import com.badlogic.gdx.graphics.GL20;
 import com.badlogic.gdx.graphics.OrthographicCamera;
-import com.badlogic.gdx.graphics.g2d.Animation;
 import com.badlogic.gdx.graphics.g2d.Batch;
-import com.badlogic.gdx.graphics.g2d.TextureAtlas;
 import com.badlogic.gdx.graphics.g2d.TextureRegion;
-import com.badlogic.gdx.graphics.g2d.TextureAtlas.AtlasRegion;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer;
 import com.badlogic.gdx.graphics.glutils.ShapeRenderer.ShapeType;
 import com.badlogic.gdx.maps.tiled.TiledMap;
@@ -60,6 +57,8 @@ public class MainScreen extends BaseScreen {
 		this.raya = new RayaMan(Assets.stand);
 		this.raya.setPosition(0, 64);
 
+		//this.stage.addActor(this.raya);
+
 		this.configControllers.init();
 	}
 
@@ -80,6 +79,9 @@ public class MainScreen extends BaseScreen {
 		this.renderRayaMan(delta);
 		if (this.shot != null)
 			this.renderShot(delta);
+		//this.stage.act(delta);
+		//this.stage.draw();
+
 	}
 
 	private void renderShot(float deltaTime){
@@ -186,7 +188,7 @@ public class MainScreen extends BaseScreen {
 		if (Gdx.input.isKeyPressed(Keys.D)){
 			if (this.raya.facesRight){
 				//-1 necessary to be exactly the same as the other facing
-				this.shot = new Shot(this.raya.getX() + (this.raya.getHeight() / 2) - 1, (this.raya.getY() + (this.raya.getWidth() / 2)), this.raya.facesRight, Assets.shotAnim);
+				this.shot = new Shot((this.raya.getX() + (this.raya.getHeight() / 2)) - 1, (this.raya.getY() + (this.raya.getWidth() / 2)), this.raya.facesRight, Assets.shotAnim);
 			}
 			else {
 				this.shot = new Shot(this.raya.getX(), (this.raya.getY() + (this.raya.getWidth() / 2)), this.raya.facesRight, Assets.shotAnim);
@@ -226,28 +228,28 @@ public class MainScreen extends BaseScreen {
 		// perform collision detection & response, on each axis, separately
 		// if the raya is moving right, check the tiles to the right of it's
 		// right bounding box edge, otherwise check the ones to the left
-		this.rayaRect = rectPool.obtain();
+		this.rayaRect = this.rectPool.obtain();
 
 		this.raya.desiredPosition.y = Math.round(this.raya.getY());
 		this.raya.desiredPosition.x = Math.round(this.raya.getX());
 
-		this.rayaRect.set(this.raya.desiredPosition.x, (this.raya.desiredPosition.y), this.raya.WIDTH, this.raya.HEIGHT);
+		this.rayaRect.set(this.raya.desiredPosition.x, (this.raya.desiredPosition.y), this.raya.getWidth(), this.raya.getHeight());
 
 		int startX, startY, endX, endY;
 
 		if (this.raya.velocity.x > 0) {
-			startX = endX = (int)((this.raya.desiredPosition.x + this.raya.velocity.x + this.raya.WIDTH) / 16);
+			startX = endX = (int)((this.raya.desiredPosition.x + this.raya.velocity.x + this.raya.getWidth()) / 16);
 		}
 		else {
 			startX = endX = (int)((this.raya.desiredPosition.x + this.raya.velocity.x) / 16);
 		}
 		if (this.raya.grounded){
 			startY = (int)((this.raya.desiredPosition.y) / 16) + 1;
-			endY = (int)((this.raya.desiredPosition.y + this.raya.HEIGHT) / 16) + 1;
+			endY = (int)((this.raya.desiredPosition.y + this.raya.getHeight()) / 16) + 1;
 		}
 		else{
 			startY = (int)((this.raya.desiredPosition.y) / 16);
-			endY = (int)((this.raya.desiredPosition.y + this.raya.HEIGHT) / 16);
+			endY = (int)((this.raya.desiredPosition.y + this.raya.getHeight()) / 16);
 		}
 		this.getTiles(startX, startY, endX, endY, this.tiles);
 
@@ -266,14 +268,14 @@ public class MainScreen extends BaseScreen {
 		// top bounding box edge, otherwise check the ones to the bottom
 
 		if (this.raya.velocity.y > 0) {
-			startY = endY = (int)((this.raya.desiredPosition.y + this.raya.velocity.y + this.raya.HEIGHT) / 16f);
+			startY = endY = (int)((this.raya.desiredPosition.y + this.raya.velocity.y + this.raya.getHeight()) / 16f);
 		}
 		else {
 			startY = endY = (int)((this.raya.desiredPosition.y + this.raya.velocity.y) / 16f);
 		}
 
 		startX = (int)(this.raya.desiredPosition.x / 16);					//16 tile size
-		endX = (int)((this.raya.desiredPosition.x + this.raya.WIDTH) / 16);
+		endX = (int)((this.raya.desiredPosition.x + this.raya.getWidth()) / 16);
 
 		// System.out.println(startX + " " + startY + " " + endX + " " + endY);
 
@@ -289,7 +291,7 @@ public class MainScreen extends BaseScreen {
 				// this removes bouncing :)
 
 				if (this.raya.velocity.y > 0) {
-					this.raya.desiredPosition.y = tile.y - this.raya.HEIGHT - 1;
+					this.raya.desiredPosition.y = tile.y - this.raya.getHeight() - 1;
 					// we hit a block jumping upwards, let's destroy it!
 					}
 				else {
@@ -306,7 +308,7 @@ public class MainScreen extends BaseScreen {
 			this.raya.grounded = false;
 
 		//goes together with get
-		rectPool.free(rayaRect);
+		this.rectPool.free(this.rayaRect);
 
 		// unscale the velocity by the inverse delta time and set
 		// the latest position
